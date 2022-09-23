@@ -14,8 +14,13 @@ def coder(header_name, name):
     new_file.write(header)
 
     for root, dirs, files in os.walk("files"):
+        # один байт будет выделен чтобы отличать папку от файла
+        # 0 для папки
+        # 1 для файла
+
         # запись папок в архив
         for dirname in dirs:
+            new_file.write(int(0).to_bytes(1, 'big'))
             p = os.path.join(root, dirname)
             p = p.split('\\')
             p = p[-2] + '\\' + p[-1]
@@ -26,6 +31,8 @@ def coder(header_name, name):
 
         # вставка файлов в архив
         for filename in files:
+
+            new_file.write(int(1).to_bytes(1, 'big'))
             # находим в каких каталогах находятся файлы
             # записываем в 'p' в виде folder\filename
 

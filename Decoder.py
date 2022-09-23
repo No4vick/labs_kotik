@@ -16,13 +16,20 @@ def decoder(header_name, archive_name):
         if signature == archive.read(8).decode(encoding='utf-8'):
         #проверка кодов алгоритмов
             archive.seek(28, 0)
-            with_context = archive.read(1)
-            without_context = archive.read(1)
-            print(with_context.decode())
-            print(without_context)
+            with_context = int.from_bytes(archive.read(1), 'big')
+            without_context = int.from_bytes(archive.read(1), 'big')
             if with_context == without_context == 0:
-                os.mkdir('files_unpacked')
-                print('поехали')
+                # os.mkdir('files_unpacked')
+                archive.seek(64, 0)
+                isfile = int.from_bytes(archive.read(1), 'big')
+                if isfile == 1:
+                    pass
+                if isfile == 0:
+                    namesize = int.from_bytes(archive.read(4), 'big')
+                    folder, name = archive.read(namesize).decode('utf-8').split('\\')
+                    print(name)
+                    # os.mkdir('')
+                    pass
         else:
             print('неверный формат файла')
 
