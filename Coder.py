@@ -1,5 +1,15 @@
 import os
 
+def get_header(header_path, version: int = 1, sub_version: int = 1):#, ctx_coding: int = 0, ctxless_coding: int = 0, cypher: int = 0):
+    with open(header_path + ".tmp", 'w+b') as f:
+        f.write(bytes("BRIGADE7", encoding='ascii'))
+        f.write(version.to_bytes(2, byteorder='big', signed=False))
+        f.write(sub_version.to_bytes(2, byteorder='big', signed=False))
+        header = f.read()
+    os.remove(header_path + ".tmp")
+    return header
+
+
 
 def coder(header_name, name):
     # создадим переменные под исходный и конечный
@@ -9,8 +19,7 @@ def coder(header_name, name):
 
     # создание нового файла и вставка в него заголовка
     new_file = open(name, "wb")
-    with open(header_name, 'rb') as f:
-        header = f.read()
+    header = get_header(header_name, version=1, sub_version=0)
     new_file.write(header)
 
     for root, dirs, files in os.walk("files"):
@@ -67,3 +76,4 @@ def coder(header_name, name):
 
 if __name__ == '__main__':
     coder('header0', 'archive')
+    # get_header('header0')
