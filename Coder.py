@@ -1,14 +1,37 @@
 import os
-import sys
+import Compressor as cr
 
 
-def get_header(version: int = 1, sub_version: int = 1):#, ctx: int = 0, no_ctx: int = 0, cypher: int = 0):
+def get_header(version: int = 1, sub_version: int = 1):  # , ctx: int = 0, no_ctx: int = 0, cypher: int = 0):
     header = bytes("BRIGADE7", encoding='ascii') + version.to_bytes(2, byteorder='big', signed=False) + \
              sub_version.to_bytes(2, byteorder='big', signed=False)
     return header
 
 
-def coder(name, src_folder):
+def get_option_bytes(option: int | list, count: int = None) -> bytes:
+    if type(option) is list and count is not None:
+        return option[count].to_bytes(1, byteorder='big', signed=False)
+    else:
+        return option.to_bytes(1, byteorder='big', signed=False)
+
+
+def get_option(option: int | list, count: int = None) -> int:
+    if type(option) is list and count is not None:
+        return option[count]
+    else:
+        return option
+
+
+def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int | list = 0, cypher: int | list = 0):
+    """
+
+    :param cypher:
+    :param ctx_compression:
+    :param name:
+    :param src_folder:
+    :param nctx_compression: Тип(ы) сжатия без контекста: 0 - нет, 1 - Шеннон, 2 - Шеннон-Фано, 3 - Хаффман
+    :return:
+    """
     # создадим переменные под исходный и конечный
     # размеры архива
     header_size = 64
@@ -26,6 +49,9 @@ def coder(name, src_folder):
     new_file.seek(header_size)
 
     for root, dirs, files in os.walk(src_folder):
+        if type(nctx_compression) is list and len(nctx_compression) != len(files):
+            raise ValueError("A")
+        filecount = 0
         # вставка файлов в архив
         for filename in files:
             # new_file.write(True.to_bytes(1, 'big'))
@@ -39,12 +65,24 @@ def coder(name, src_folder):
             with open(p, 'rb') as f:
                 filesize = os.path.getsize(p)
                 new_file.write(filesize.to_bytes(8, byteorder='big', signed=False))
+                # всякие преобразования в файле
+                file = cr.ctx_compress(f.read(), get_option(ctx_compression))
+                file = cr.nctx_compress(file, get_option(nctx_compression))
+                file = cr.cypher(file, get_option(cypher))
+                # записываем финальный размер
+                new_file.write(len(file).to_bytes(8, byteorder='big', signed=False))
+                # запись сжатий и шифрования
+                new_file.write(get_option_bytes(ctx_compression, filecount))
+                new_file.write(get_option_bytes(nctx_compression, filecount))
+                new_file.write(get_option_bytes(cypher, filecount))
                 # перекодирование строки в utf-8
                 pathsize = len(p.encode(encoding='utf-8'))
+                # запись пути к файлу
                 new_file.write(pathsize.to_bytes(4, byteorder='big', signed=False))
                 original_size += filesize + pathsize
                 new_file.write(bytes(p, encoding='utf-8'))
-                new_file.write(f.read())
+                new_file.write(file)
+            filecount += 1
 
     # запишем размеры архива в header
     # исходный
@@ -56,4 +94,4 @@ def coder(name, src_folder):
 
 
 if __name__ == '__main__':
-    coder('archive', 'files')
+    coder('archive', 'files', 1, 1, 1)

@@ -1,4 +1,5 @@
 import os
+import Decompressor as dr
 
 
 def decoder(archive_name):
@@ -22,11 +23,23 @@ def decoder(archive_name):
                 return
             while True:
                 # Считывание размера файла и размера пути
-                size = int.from_bytes(archive.read(8), byteorder='big', signed=False)
+                original_size = int.from_bytes(archive.read(8), byteorder='big', signed=False)
+                # Считывания обработки файла
+                new_size = int.from_bytes(archive.read(8), byteorder='big', signed=False)
+                ctx_compression = int.from_bytes(archive.read(1), byteorder='big', signed=False)
+                nctx_compression = int.from_bytes(archive.read(1), byteorder='big', signed=False)
+                cypher = int.from_bytes(archive.read(1), byteorder='big', signed=False)
+                # Считывание размера пути
                 path_size = int.from_bytes(archive.read(4), byteorder='big', signed=False)
                 # Считывание и декодирование пути
                 path = os.path.normpath(archive.read(path_size).decode(encoding='utf-8')).replace('\\', '/')
-                file = archive.read(size)
+                file = archive.read(new_size)
+                # Развёртывание файла
+                file = dr.ctx_decompress(file, ctx_compression)
+                file = dr.nctx_decompress(file, nctx_compression)
+                file = dr.decypher(file, cypher)
+                if len(file) != original_size:
+                    raise RuntimeError("OH no!")
                 # Создание пути папок
                 folder_path = path[:path.rfind('/')]
                 os.makedirs(folder_path, exist_ok=True)
