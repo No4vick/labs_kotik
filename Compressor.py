@@ -24,11 +24,11 @@ def shannon_compress(file: bytes) -> bytes:
             inclusions[byte] += 1
         except KeyError:
             inclusions[byte] = 1
-    print(inclusions)
+    # print(inclusions)
     freq_sum = {}
     bytes_list = sorted(inclusions.items(), key=lambda item: item[1], reverse=True)
     bytes_list = [x[0] for x in bytes_list]
-    print(bytes_list)
+    # print(bytes_list)
     for k in range(len(bytes_list)):
         if k == 0:
             freq_sum[bytes_list[k]] = 0
@@ -36,18 +36,25 @@ def shannon_compress(file: bytes) -> bytes:
             prev_sum = freq_sum[bytes_list[k - 1]]
             current_freq = inclusions[bytes_list[k - 1]]
             freq_sum[bytes_list[k]] = prev_sum + current_freq
-    print(freq_sum)
+    # print(freq_sum)
     byte_codes = {}
     for k in range(len(bytes_list)):
         freq = freq_sum[bytes_list[k]]
         precision = ceil(-log2(inclusions[bytes_list[k]] / size))
         byte_codes[bytes_list[k]] = binary_divison.divide(freq, size, precision)[1]
     # file encoding
-    file = bytearray(file)
-    # for byte in file:
-    #     byte = codecs.encode(bytes([byte]), 'hex')
-    #     print(byte_codes[byte])
-    print(byte_codes)
+    new_file_string = ""
+    for i in range(size):
+        byte = codecs.encode(bytes([file[i]]), 'hex')
+        # print(byte_codes[byte])
+        new_file_string += byte_codes[byte]
+    new_file_bytes = bytearray()
+    for x in range(0, len(new_file_string), 8):
+        byte = new_file_string[x:x + 8]
+        byte = int(byte, 2).to_bytes(1, 'big')
+        new_file_bytes += byte
+    # print(bytes(new_file_bytes))
+    # print(file)
     return file
 
 
