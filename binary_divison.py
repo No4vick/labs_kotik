@@ -14,3 +14,6 @@ def frac_to_bin(frac, precision):
         i += 1
     res = ''.join(res)
     return res
+
+if __name__ == '__main__':
+    print(divide(5,14,5))
