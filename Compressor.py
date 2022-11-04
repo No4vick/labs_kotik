@@ -58,9 +58,9 @@ def shannon_compress(file: bytes) -> (bytes, bytes):
         # print(byte_codes[byte])
         # new_file_string += byte_codes[byte]
         new_file_string_arr[i] = byte_codes[byte]
-    print(byte_codes)
+    # print(byte_codes)
     new_file_string = ''.join(new_file_string_arr)
-    print(new_file_string)
+    # print(new_file_string)
 
     new_file_bytes = bytearray()
     for x in range(0, len(new_file_string), 8):
@@ -70,7 +70,7 @@ def shannon_compress(file: bytes) -> (bytes, bytes):
     # print(bytes(new_file_bytes))
     # print(file)
     header = shannon_header(byte_codes)
-    print(f'source = {len(file)}; new = {ceil(len(new_file_string) / 8)}')
+    # print(f'source = {len(file)}; new = {ceil(len(new_file_string) / 8)}')
     return new_file_bytes, header
 
 
@@ -107,12 +107,12 @@ def cypher(file: bytes, compression: int) -> bytes:
 
 if __name__ == '__main__':
     # filename = "files/folder1/song.mp3"
-    filename = "Coder.py"
+    filename = "song.mp3"
     with open(filename, 'rb') as f:
         newfile, header = shannon_compress(f.read())
-    print('header:', header)
-    print('header len:', len(header))
-    print('unheader:')
-    with open(filename + ".tmp", 'wb') as f:
+    # print('header:', header)
+    # print('header len:', len(header))
+    # print('unheader:')
+    with open("new_" + filename, 'wb') as f:
         f.write(shannon_decompress(newfile, header))
 
