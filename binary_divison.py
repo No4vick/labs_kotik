@@ -6,14 +6,13 @@ def divide(a, b, precision):
 
 def frac_to_bin(frac, precision):
     res = [''] * precision
-    i = 0
-    while i < precision:
+    for i in range(precision):
         frac = frac * 2
         res[i] = str(int(frac))
         frac = frac - int(frac)
-        i += 1
     res = ''.join(res)
     return res
 
+
 if __name__ == '__main__':
-    print(divide(5,14,5))
+    print(divide(5, 14, 5))
