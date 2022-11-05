@@ -36,7 +36,7 @@ def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int |
     # размеры архива
     header_size = 64
     original_size = 64
-    final_size = 0
+    final_size = 64
 
     # создание нового файла и вставка в него заголовка
     try:
@@ -65,9 +65,10 @@ def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int |
             with open(p, 'rb') as f:
                 filesize = os.path.getsize(p)
                 new_file.write(filesize.to_bytes(8, byteorder='big', signed=False))
+                original_size += filesize
                 # всякие преобразования в файле
                 file = cr.ctx_compress(f.read(), get_option(ctx_compression))
-                file = cr.nctx_compress(file, get_option(nctx_compression))
+                file, nctx_dict = cr.nctx_compress(file, get_option(nctx_compression))
                 file = cr.cypher(file, get_option(cypher))
                 # записываем финальный размер
                 new_file.write(len(file).to_bytes(8, byteorder='big', signed=False))
@@ -79,8 +80,21 @@ def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int |
                 pathsize = len(p.encode(encoding='utf-8'))
                 # запись пути к файлу
                 new_file.write(pathsize.to_bytes(4, byteorder='big', signed=False))
-                original_size += filesize + pathsize
+                final_size += filesize + pathsize
+                original_size += pathsize
+                #запись имени файла
                 new_file.write(bytes(p, encoding='utf-8'))
+                if get_option(nctx_compression) != 0:
+                    # запись Длины словаря кодировки без контекста
+                    new_file.write(bytes(len(nctx_dict)))
+                    # запись словаря кодировки без контекста
+                    print(len(nctx_dict))
+                    new_file.write(nctx_dict)
+                if get_option(ctx_compression) != 0:
+                    # запись Длины словаря кодировки с контекстом
+                    # запись словаря кодировки c контекстом
+                    pass
+                # запись файла
                 new_file.write(file)
             filecount += 1
 
@@ -89,9 +103,9 @@ def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int |
     new_file.seek(12, 0)
     new_file.write(original_size.to_bytes(8, byteorder='big', signed=False))
     # конечный
-    new_file.write(original_size.to_bytes(8, byteorder='big', signed=False))
+    new_file.write(final_size.to_bytes(8, byteorder='big', signed=False))
     new_file.close()
 
 
 if __name__ == '__main__':
-    coder('archive', 'files', 1, 1, 1)
+    coder('archive', 'files', 1, 0, 0)

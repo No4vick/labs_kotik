@@ -1,9 +1,9 @@
-def nctx_decompress(file: bytes, compression: int) -> bytes:
+def nctx_decompress(file: bytes, header: bytes, compression: int) -> bytes:
     match compression:
         case 0:
             return file
         case 1:
-            return shannon_decompress(file)
+            return shannon_decompress(file, header)
         case _:
             return file
 

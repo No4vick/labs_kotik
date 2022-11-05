@@ -35,8 +35,16 @@ def decoder(archive_name):
                 path = os.path.normpath(archive.read(path_size).decode(encoding='utf-8')).replace('\\', '/')
                 file = archive.read(new_size)
                 # Развёртывание файла
-                file = dr.ctx_decompress(file, ctx_compression)
+
+                # Считывание длины словаря кодировки без контекста
+                nctx
+                # Считывание словаря кодировки без контекста
+                nctx_header = archive.read
+                # развертывание без контекста
                 file = dr.nctx_decompress(file, nctx_compression)
+                # Считывание длины словаря кодировки с контекстом
+                # Считывание словаря кодировки с контекстом
+                file = dr.ctx_decompress(file, ctx_compression)
                 file = dr.decypher(file, cypher)
                 if len(file) != original_size:
                     raise RuntimeError("OH no!")

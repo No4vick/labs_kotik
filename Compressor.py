@@ -7,14 +7,14 @@ from Decompressor import shannon_decompress
 import binary_divison
 
 
-def nctx_compress(file: bytes, compression: int) -> bytes:
+def nctx_compress(file: bytes, compression: int) -> tuple:
     match compression:
         case 0:
-            return file
+            return file, 0
         case 1:
             return shannon_compress(file)
         case _:
-            return file
+            return file, 0
 
 
 def shannon_compress(file: bytes) -> (bytes, bytes):
