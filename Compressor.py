@@ -48,6 +48,8 @@ def shannon_compress(file: bytes) -> (bytes, bytes):
         freq = freq_sum[bytes_list[k]]
         precision = ceil(-log2(inclusions[bytes_list[k]] / size))
         byte_codes[bytes_list[k]] = binary_divison.divide(freq, size, precision)[1]
+    # print(byte_codes)
+    print("len byte_codes = " + str(len(byte_codes)))
     # file encoding
     new_file_string_arr = [''] * size
     total = 0
@@ -63,13 +65,17 @@ def shannon_compress(file: bytes) -> (bytes, bytes):
     # print(new_file_string)
 
     new_file_bytes = bytearray()
+    last_byte_len = 0
     for x in range(0, len(new_file_string), 8):
         byte = new_file_string[x:x + 8]
+        last_byte_len = len(byte)
         byte = int(byte, 2).to_bytes(1, 'big')
         new_file_bytes += byte
     # print(bytes(new_file_bytes))
     # print(file)
-    header = shannon_header(byte_codes)
+    header = last_byte_len.to_bytes(1, 'big')
+    header += shannon_header(byte_codes)
+
     # print(f'source = {len(file)}; new = {ceil(len(new_file_string) / 8)}')
     return new_file_bytes, header
 
@@ -107,7 +113,7 @@ def cypher(file: bytes, compression: int) -> bytes:
 
 if __name__ == '__main__':
     # filename = "files/folder1/song.mp3"
-    filename = "song.mp3"
+    filename = "kek.txt"
     with open(filename, 'rb') as f:
         newfile, header = shannon_compress(f.read())
     # print('header:', header)

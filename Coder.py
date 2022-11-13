@@ -86,9 +86,10 @@ def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int |
                 new_file.write(bytes(p, encoding='utf-8'))
                 if get_option(nctx_compression) != 0:
                     # запись Длины словаря кодировки без контекста
-                    new_file.write(bytes(len(nctx_dict)))
+                    # new_file.write(bytes(len(nctx_dict)))
+                    new_file.write(len(nctx_dict).to_bytes(2, byteorder='big'))
                     # запись словаря кодировки без контекста
-                    print(len(nctx_dict))
+                    print(f"len nctx_dict = {len(nctx_dict)}")
                     new_file.write(nctx_dict)
                 if get_option(ctx_compression) != 0:
                     # запись Длины словаря кодировки с контекстом

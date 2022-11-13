@@ -33,21 +33,23 @@ def decoder(archive_name):
                 path_size = int.from_bytes(archive.read(4), byteorder='big', signed=False)
                 # Считывание и декодирование пути
                 path = os.path.normpath(archive.read(path_size).decode(encoding='utf-8')).replace('\\', '/')
-                file = archive.read(new_size)
+                # file = archive.read(new_size)
                 # Развёртывание файла
 
                 # Считывание длины словаря кодировки без контекста
-                nctx
+                nctx_header_size = int.from_bytes(archive.read(2), byteorder='big')
+                nctx_header = archive.read(nctx_header_size)
                 # Считывание словаря кодировки без контекста
-                nctx_header = archive.read
                 # развертывание без контекста
-                file = dr.nctx_decompress(file, nctx_compression)
+                # print(nctx_header)
+                file = archive.read(new_size)
+                file = dr.nctx_decompress(file, nctx_header, nctx_compression)
                 # Считывание длины словаря кодировки с контекстом
                 # Считывание словаря кодировки с контекстом
                 file = dr.ctx_decompress(file, ctx_compression)
                 file = dr.decypher(file, cypher)
                 if len(file) != original_size:
-                    raise RuntimeError("OH no!")
+                    raise RuntimeError(f"OH no! len file {path} is {len(file)} but original size is {original_size}")
                 # Создание пути папок
                 folder_path = path[:path.rfind('/')]
                 os.makedirs(folder_path, exist_ok=True)
