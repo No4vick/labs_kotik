@@ -49,7 +49,7 @@ def shannon_compress(file: bytes) -> (bytes, bytes):
         precision = ceil(-log2(inclusions[bytes_list[k]] / size))
         byte_codes[bytes_list[k]] = binary_divison.divide(freq, size, precision)[1]
     # print(byte_codes)
-    print("len byte_codes = " + str(len(byte_codes)))
+    # print("len byte_codes = " + str(len(byte_codes)))
     # file encoding
     new_file_string_arr = [''] * size
     total = 0
@@ -77,6 +77,7 @@ def shannon_compress(file: bytes) -> (bytes, bytes):
     header += shannon_header(byte_codes)
 
     # print(f'source = {len(file)}; new = {ceil(len(new_file_string) / 8)}')
+    print(f'source = {len(file)}; new = {len(new_file_bytes)} + {len(header)} + 2 ')
     return new_file_bytes, header
 
 

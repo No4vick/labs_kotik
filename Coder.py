@@ -47,11 +47,11 @@ def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int |
     header = get_header(version=1, sub_version=0)
     new_file.write(header)
     new_file.seek(header_size)
-
+    filecount = 0
     for root, dirs, files in os.walk(src_folder):
-        if type(nctx_compression) is list and len(nctx_compression) != len(files):
-            raise ValueError("A")
-        filecount = 0
+
+        # if type(nctx_compression) is list and len(nctx_compression) != len(files):
+        #     raise ValueError("A")
         # вставка файлов в архив
         for filename in files:
             # new_file.write(True.to_bytes(1, 'big'))
@@ -67,8 +67,22 @@ def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int |
                 new_file.write(filesize.to_bytes(8, byteorder='big', signed=False))
                 original_size += filesize
                 # всякие преобразования в файле
-                file = cr.ctx_compress(f.read(), get_option(ctx_compression))
-                file, nctx_dict = cr.nctx_compress(file, get_option(nctx_compression))
+                file_full = f.read()
+                file_ctx_compressed = cr.ctx_compress(file_full, get_option(ctx_compression, filecount))
+                file, nctx_dict = cr.nctx_compress(file_ctx_compressed, get_option(nctx_compression, filecount))
+                # проверка целесообразности сжатия
+                n = filesize
+                # is_useless = True
+                if get_option(nctx_compression, filecount) != 0:
+                    n_comp = len(file) + len(nctx_dict) + 2
+                    is_useless = n <= n_comp
+                    if is_useless:
+                        print(f"compression is useless for {filename} :")
+                        print(f"n = {n} , n_comp = {n_comp}")
+                        # print(filecount)
+                        nctx_compression[filecount] = 0
+                        file = file_full
+
                 file = cr.cypher(file, get_option(cypher))
                 # записываем финальный размер
                 new_file.write(len(file).to_bytes(8, byteorder='big', signed=False))
@@ -84,12 +98,12 @@ def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int |
                 original_size += pathsize
                 #запись имени файла
                 new_file.write(bytes(p, encoding='utf-8'))
-                if get_option(nctx_compression) != 0:
+                if get_option(nctx_compression, filecount) != 0:
                     # запись Длины словаря кодировки без контекста
                     # new_file.write(bytes(len(nctx_dict)))
                     new_file.write(len(nctx_dict).to_bytes(2, byteorder='big'))
                     # запись словаря кодировки без контекста
-                    print(f"len nctx_dict = {len(nctx_dict)}")
+                    # print(f"len nctx_dict = {len(nctx_dict)}")
                     new_file.write(nctx_dict)
                 if get_option(ctx_compression) != 0:
                     # запись Длины словаря кодировки с контекстом
@@ -109,4 +123,4 @@ def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int |
 
 
 if __name__ == '__main__':
-    coder('archive', 'files', 1, 0, 0)
+    coder('archive', 'files', [1, 1, 1, 1], 0, 0)

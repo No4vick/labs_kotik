@@ -36,16 +36,19 @@ def decoder(archive_name):
                 # file = archive.read(new_size)
                 # Развёртывание файла
 
-                # Считывание длины словаря кодировки без контекста
-                nctx_header_size = int.from_bytes(archive.read(2), byteorder='big')
-                nctx_header = archive.read(nctx_header_size)
-                # Считывание словаря кодировки без контекста
-                # развертывание без контекста
-                # print(nctx_header)
-                file = archive.read(new_size)
-                file = dr.nctx_decompress(file, nctx_header, nctx_compression)
-                # Считывание длины словаря кодировки с контекстом
-                # Считывание словаря кодировки с контекстом
+                if nctx_compression != 0:
+                    # Считывание длины словаря кодировки без контекста
+                    nctx_header_size = int.from_bytes(archive.read(2), byteorder='big')
+                    nctx_header = archive.read(nctx_header_size)
+                    # Считывание словаря кодировки без контекста
+                    # развертывание без контекста
+                    # print(nctx_header)
+                    file = archive.read(new_size)
+                    file = dr.nctx_decompress(file, nctx_header, nctx_compression)
+                    # Считывание длины словаря кодировки с контекстом
+                    # Считывание словаря кодировки с контекстом
+                else:
+                    file = archive.read(new_size)
                 file = dr.ctx_decompress(file, ctx_compression)
                 file = dr.decypher(file, cypher)
                 if len(file) != original_size:
