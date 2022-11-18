@@ -2,9 +2,13 @@ import os
 import Compressor as cr
 
 
-def get_header(version: int = 1, sub_version: int = 1):  # , ctx: int = 0, no_ctx: int = 0, cypher: int = 0):
+def get_header(version: int = 1, sub_version: int = 1, ctx: int = 0, no_ctx: int = 0, cypher: int = 0,
+               start_size: int = 0, final_size: int = 0):
     header = bytes("BRIGADE7", encoding='ascii') + version.to_bytes(2, byteorder='big', signed=False) + \
-             sub_version.to_bytes(2, byteorder='big', signed=False)
+             sub_version.to_bytes(2, byteorder='big', signed=False) + start_size.to_bytes(8, byteorder='big',
+                                                                                      signed=False) + \
+             final_size.to_bytes(8, byteorder='big', signed=False) + ctx.to_bytes(1, byteorder='big', signed=False) + \
+             no_ctx.to_bytes(1, byteorder='big', signed=False) + cypher.to_bytes(1, byteorder='big', signed=False)
     return header
 
 
@@ -22,9 +26,11 @@ def get_option(option: int | list, count: int = None) -> int:
         return option
 
 
-def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int | list = 0, cypher: int | list = 0):
+def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int | list = 0, cypher: int | list = 0,
+          whole: bool = False, whole_params: list = None):
     """
 
+    :param whole:
     :param cypher:
     :param ctx_compression:
     :param name:
@@ -40,16 +46,18 @@ def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int |
 
     # создание нового файла и вставка в него заголовка
     try:
-        new_file = open(name, "wb")
+        new_file = open(name + ".tmp", "wb")
     except OSError as e:
         print(str(e) + "\n" + "Couldn't open file")
         return
+    # if whole:
+    #     header = get_header(version=1, sub_version=0, no_ctx=nctx_compression)  # FIXME добавить остальное потом
+    # else:
     header = get_header(version=1, sub_version=0)
-    new_file.write(header)
-    new_file.seek(header_size)
+    # new_file.write(header)
+    # new_file.seek(header_size)
     filecount = 0
     for root, dirs, files in os.walk(src_folder):
-
         # if type(nctx_compression) is list and len(nctx_compression) != len(files):
         #     raise ValueError("A")
         # вставка файлов в архив
@@ -80,7 +88,10 @@ def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int |
                         print(f"compression is useless for {filename} :")
                         print(f"n = {n} , n_comp = {n_comp}")
                         # print(filecount)
-                        nctx_compression[filecount] = 0
+                        try:
+                            nctx_compression[filecount] = 0
+                        except TypeError:
+                            nctx_compression = 0
                         file = file_full
 
                 file = cr.cypher(file, get_option(cypher))
@@ -96,7 +107,7 @@ def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int |
                 new_file.write(pathsize.to_bytes(4, byteorder='big', signed=False))
                 final_size += filesize + pathsize
                 original_size += pathsize
-                #запись имени файла
+                # запись имени файла
                 new_file.write(bytes(p, encoding='utf-8'))
                 if get_option(nctx_compression, filecount) != 0:
                     # запись Длины словаря кодировки без контекста
@@ -107,20 +118,45 @@ def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int |
                     new_file.write(nctx_dict)
                 if get_option(ctx_compression) != 0:
                     # запись Длины словаря кодировки с контекстом
-                    # запись словаря кодировки c контекстом
+                    # запись словаря кодировки с контекстом
                     pass
                 # запись файла
                 new_file.write(file)
             filecount += 1
-
+    new_file.close()
     # запишем размеры архива в header
     # исходный
-    new_file.seek(12, 0)
-    new_file.write(original_size.to_bytes(8, byteorder='big', signed=False))
+    try:
+        archive = open(name, "wb")
+    except OSError as e:
+        print(str(e) + "\n" + "Couldn't open archive file")
+        return
+    # Приколы если мы хотим весь файл сжатым
+    with open(name + ".tmp", "rb") as f:
+        whole_file = f.read()
+    if whole:
+        whole_file = cr.ctx_compress(whole_file, whole_params[0])
+        whole_file, nctx_header = cr.nctx_compress(whole_file, whole_params[1])
+        whole_file = cr.cypher(whole_file, whole_params[2])
+        final_size = len(whole_file)
+        header = get_header(version=1, sub_version=0, no_ctx=whole_params[1], start_size=original_size,
+                            final_size=final_size)
+        archive.write(header)
+        archive.seek(31, 0)
+        print(len(nctx_header))
+        archive.write(len(nctx_header).to_bytes(2, byteorder='big'))
+        archive.write(nctx_header)
+    else:
+        archive.write(header)
+    archive.seek(12, 0)
+    archive.write(original_size.to_bytes(8, byteorder='big', signed=False))
     # конечный
-    new_file.write(final_size.to_bytes(8, byteorder='big', signed=False))
-    new_file.close()
+    archive.write(final_size.to_bytes(8, byteorder='big', signed=False))
+    archive.seek(header_size, 0)
+    archive.write(whole_file)
+    archive.close()
 
 
 if __name__ == '__main__':
-    coder('archive', 'files', [1, 1, 1, 1], 0, 0)
+    # coder('archive', 'files', [1, 1, 1, 1], 0, 0, whole=True)
+    coder('archive', 'files', [0, 0, 0, 0], 0, 0, whole=True, whole_params=[0, 1, 0])
