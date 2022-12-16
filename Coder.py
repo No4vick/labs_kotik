@@ -46,6 +46,7 @@ def file_coder(file_full: bytes, filecount: int, p: str, nctx_compression: int |
             nctx_compression[filecount] = 0
             file = file_full
 
+
     file = cr.cypher(file, get_option(cypher))
     # записываем финальный размер
     # new_file.write(len(file).to_bytes(8, byteorder='big', signed=False))
@@ -65,7 +66,7 @@ def file_coder(file_full: bytes, filecount: int, p: str, nctx_compression: int |
     # final_size += filesize + pathsize
     final_filesize = filesize + pathsize
     # original_size += pathsize
-    original_filesize += pathsize
+    # original_filesize += pathsize
     # запись имени файла
     # new_file.write(bytes(p, encoding='utf-8'))
     file_header += bytes(p, encoding='utf-8')
@@ -101,7 +102,7 @@ def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int |
     # создадим переменные под исходный и конечный
     # размеры архива
     header_size = 64
-    original_size = 64
+    original_size = 0
     final_size = 64
 
     # создание нового файла и вставка в него заголовка
@@ -143,6 +144,9 @@ def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int |
     # конечный
     new_file.write(final_size.to_bytes(8, byteorder='big', signed=False))
     new_file.close()
+    with open(name, 'rb') as f:
+        print(f"archive size = {len(f.read())}")
+    print(f"orig size = {original_size}")
 
 
 if __name__ == '__main__':
