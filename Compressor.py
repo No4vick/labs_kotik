@@ -2,7 +2,7 @@ import codecs
 import time
 from math import log2, ceil
 
-from Decompressor import shannon_decompress
+from Decompressor import shannon_decompress, rle_decompress
 
 import binary_divison
 
@@ -17,10 +17,8 @@ def nctx_compress(file: bytes, compression: int) -> tuple:
             return file, 0
 
 
-def shannon_compress(file: bytes) -> (bytes, bytes):
-    # tree formation
+def count_inclusions(file):
     inclusions = {}
-    size = len(file)
     for i in file:
         # byte = codecs.encode(bytes([i]), 'hex')
         byte = bytes([i])
@@ -29,6 +27,14 @@ def shannon_compress(file: bytes) -> (bytes, bytes):
             inclusions[byte] += 1
         except KeyError:
             inclusions[byte] = 1
+    return inclusions
+
+
+def shannon_compress(file: bytes) -> (bytes, bytes):
+    # tree formation
+    inclusions = count_inclusions(file)
+    size = len(file)
+
     # print(inclusions)
     freq_sum = {}
     bytes_list = sorted(inclusions.items(), key=lambda item: item[1], reverse=True)
@@ -100,8 +106,58 @@ def ctx_compress(file: bytes, compression: int) -> bytes:
     match compression:
         case 0:
             return file
+        case 1:
+            return rle_compress(file)
         case _:
             return file
+
+
+def rle_compress(file: bytes) -> bytes:
+    size = len(file)
+    if size < 5:
+        return file
+    inclusions = count_inclusions(file)
+    bytes_list = sorted(inclusions.items(), key=lambda item: item[1])
+    flag = bytes(bytes_list[0][0])
+
+    new_file_bytes = bytearray() + flag
+
+    count = 1
+    curr_symbol = None
+
+    for i in range(size):
+        byte = bytes([file[i]])
+        if curr_symbol != byte:
+            if count >= 4:
+                new_file_bytes += flag
+                new_file_bytes += count.to_bytes(2, 'big', signed=False)
+                new_file_bytes += curr_symbol
+            else:
+                if curr_symbol == flag:
+                    new_file_bytes += flag
+                    new_file_bytes += count.to_bytes(2, 'big', signed=False)
+                    new_file_bytes += flag
+                else:
+                    if i != 0:
+                        new_file_bytes += curr_symbol * count
+            curr_symbol = byte
+            count = 1
+        else:
+            count += 1
+    if count >= 4:
+        new_file_bytes += flag
+        new_file_bytes += count.to_bytes(2, 'big', signed=False)
+        new_file_bytes += curr_symbol
+    else:
+        if curr_symbol == flag:
+            new_file_bytes += flag
+            new_file_bytes += count.to_bytes(2, 'big', signed=False)
+            new_file_bytes += flag
+        else:
+            new_file_bytes += curr_symbol
+
+    print(f"Original size: {size}\nNew size: {len(new_file_bytes)}")
+    return new_file_bytes
 
 
 def cypher(file: bytes, compression: int) -> bytes:
@@ -122,4 +178,3 @@ if __name__ == '__main__':
     # print('unheader:')
     with open("new_" + filename, 'wb') as f:
         f.write(shannon_decompress(newfile, header))
-
