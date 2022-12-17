@@ -48,7 +48,7 @@ def file_coder(file_full: bytes, filecount: int, p: str, nctx_compression: int |
             print(f"n = {n} , n_comp = {n_comp}")
             # print(filecount)
             nctx_compression[filecount] = 0
-            file = file_full
+            file = file_ctx_compressed
 
     file = cr.cypher(file, get_option(cypher))
     # записываем финальный размер
@@ -82,10 +82,6 @@ def file_coder(file_full: bytes, filecount: int, p: str, nctx_compression: int |
         # print(f"len nctx_dict = {len(nctx_dict)}")
         # new_file.write(nctx_dict)
         file_header += nctx_dict
-    if get_option(ctx_compression) != 0:
-        # запись Длины словаря кодировки с контекстом
-        # запись словаря кодировки c контекстом
-        pass
     # запись файла
     file = file_header + file
     return file, original_filesize, final_filesize
@@ -150,4 +146,4 @@ def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int |
 
 
 if __name__ == '__main__':
-    coder('archive', 'files', [0, 0, 0, 0], 1, 0)
+    coder('archive', 'files', [1, 1, 1], 1, 0)
