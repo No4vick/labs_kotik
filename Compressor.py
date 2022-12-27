@@ -108,6 +108,8 @@ def ctx_compress(file: bytes, compression: int) -> bytes:
             return file
         case 1:
             return rle_compress(file)
+        case 2:
+            return lz_compress(file)
         case _:
             return file
 
@@ -268,9 +270,9 @@ def lz_compress(file: bytes) -> bytes:
     new_file_bytes += front_buffer
     new_file_bytes = len(front_buffer).to_bytes(1, 'big') + new_file_bytes
 
-    if size < len(new_file_bytes):
-        print(f"Compression is useless: old size: {size} < new size: {len(new_file_bytes)}")
-        return file
+    # if size < len(new_file_bytes):
+    #     print(f"Compression is useless: old size: {size} < new size: {len(new_file_bytes)}")
+    #     return file
     return new_file_bytes
 
 

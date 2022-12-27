@@ -54,6 +54,8 @@ def ctx_decompress(file: bytes, compression: int) -> bytes:
             return file
         case 1:
             return rle_decompress(file)
+        case 2:
+            return lz_decompress(file)
         case _:
             return file
 
