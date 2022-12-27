@@ -146,4 +146,4 @@ def coder(name, src_folder, nctx_compression: int | list, ctx_compression: int |
 
 
 if __name__ == '__main__':
-    coder('archive', 'files', [1, 1, 1], 1, 0)
+    coder('archive', 'files', [0, 0, 0], 1, 0)

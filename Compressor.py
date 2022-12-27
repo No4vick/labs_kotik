@@ -2,7 +2,7 @@ import codecs
 import time
 from math import log2, ceil
 
-from Decompressor import shannon_decompress, rle_decompress
+from Decompressor import shannon_decompress, rle_decompress, lz_decompress
 
 import binary_divison
 
@@ -160,6 +160,120 @@ def rle_compress(file: bytes) -> bytes:
     return new_file_bytes
 
 
+def pad_binary_str(bin_str: str, req_length: int) -> str:
+    res_str = '0' * (req_length - len(bin_str)) + bin_str
+    return res_str
+
+
+def get_bin_str(num: int, padding: int = 0):
+    return pad_binary_str(bin(num)[2:], padding)
+
+
+def lz_get_link_bytes(offset: int, length: int, print_debug: bool = False):
+    max_offset = 1023
+    max_length = 63
+    if offset > max_offset:
+        raise ValueError("Exceeded offset value!")
+    if length > max_length:
+        raise ValueError("Exceeded length value!")
+
+    if print_debug:
+        show_byte = get_bin_str(length - 3, 6) + get_bin_str(offset, 10)
+        show_byte = show_byte[:8] + "|" + show_byte[8:]
+        print(f"link_bytes for offset {offset} and length {length}\n"
+              f"l: {get_bin_str(length - 3, 6)}, s: {get_bin_str(offset, 10)}\n"
+              f"whole: {show_byte}")
+
+    a = get_bin_str(length - 3, 6) + get_bin_str(offset - 1, 10)
+
+    b = int(get_bin_str(length - 3, 6) + get_bin_str(offset - 1, 10), 2).to_bytes(2, 'big')
+
+    return int(get_bin_str(length - 3, 6) + get_bin_str(offset - 1, 10), 2).to_bytes(2, 'big')
+
+
+def lz_flag_list_to_byte(flag_list: list[int]) -> bytes:
+    flag_list = list(map(str, flag_list))
+    bit_string = ''.join(flag_list)
+    return int(bit_string, 2).to_bytes(1, 'big')
+
+
+def lz_compress(file: bytes) -> bytes:
+    size = len(file)
+    new_file_bytes = bytearray()
+    min_len = 3
+    window_size = 1023
+    max_len = 63
+    window = bytearray()
+    front_buffer = bytearray()
+    flag_list = [-1] * 8
+    flag_counter = 0
+    symbols_buffer = bytearray()
+    i = 0
+    while i < size:
+        byte = bytes([file[i]])
+        front_buffer += byte
+        if i < size - 1:
+            last_or_breaking = (front_buffer + bytes([file[i+1]])) not in window
+        else:
+            last_or_breaking = True
+        if front_buffer in window and max_len >= len(front_buffer) >= min_len and last_or_breaking:
+            if flag_counter < 8:
+                flag_list[flag_counter] = 1
+                flag_counter += 1
+            else:
+                new_file_bytes += lz_flag_list_to_byte(flag_list) + symbols_buffer
+                symbols_buffer.clear()
+                flag_list = [-1] * 8
+                flag_list[0] = 1
+                flag_counter = 1
+            offset = len(window) - window.rfind(front_buffer)
+            length = len(front_buffer)
+            symbols_buffer += lz_get_link_bytes(offset, length)
+            if len(window) + len(front_buffer) > window_size:
+                window = window[len(front_buffer):] + front_buffer
+            else:
+                window += front_buffer
+            front_buffer.clear()
+        else:
+            if front_buffer not in window:
+                for k in range(len(front_buffer)):
+                    if flag_counter < 8:
+                        flag_list[flag_counter] = 0
+                        flag_counter += 1
+                    else:
+                        new_file_bytes += lz_flag_list_to_byte(flag_list) + symbols_buffer
+                        symbols_buffer.clear()
+                        flag_list = [-1] * 8
+                        flag_list[0] = 0
+                        flag_counter = 1
+                    symbols_buffer += bytes([front_buffer[k]])
+
+                # symbols_buffer += front_buffer
+
+                if len(window) + len(front_buffer) > window_size:
+                    window = window[len(front_buffer):] + front_buffer
+                else:
+                    window += front_buffer
+                front_buffer.clear()
+        i += 1
+
+    # Write last chunk to file
+    for i in range(8):
+        if flag_list[i] < 0:
+            flag_list[i] = 0
+    new_file_bytes += lz_flag_list_to_byte(flag_list) + symbols_buffer
+    # new_file_bytes = len(symbols_buffer).to_bytes(1, 'big') + new_file_bytes
+
+    # Fixing jank of leftover front_buffer
+    new_file_bytes += front_buffer
+    new_file_bytes = len(front_buffer).to_bytes(1, 'big') + new_file_bytes
+
+    if size < len(new_file_bytes):
+        print(f"Compression is useless: old size: {size} < new size: {len(new_file_bytes)}")
+        return file
+    return new_file_bytes
+
+
 def cypher(file: bytes, compression: int) -> bytes:
     match compression:
         case 0:
@@ -169,12 +283,18 @@ def cypher(file: bytes, compression: int) -> bytes:
 
 
 if __name__ == '__main__':
-    # filename = "files/folder1/song.mp3"
-    filename = "kek.txt"
+    # # filename = "files/folder1/song.mp3"
+    filename = "files/song.mp3"
+    # filename = "aboba.txt"
+    # filename = "small.txt"
     with open(filename, 'rb') as f:
-        newfile, header = shannon_compress(f.read())
-    # print('header:', header)
-    # print('header len:', len(header))
-    # print('unheader:')
-    with open("new_" + filename, 'wb') as f:
-        f.write(shannon_decompress(newfile, header))
+        newfile = lz_compress(f.read())
+    # # print('header:', header)
+    # # print('header len:', len(header))
+    # # print('unheader:')
+    # with open("new_" + filename, 'wb') as f:
+    #     f.write(lz_decompress(newfile))
+    a = '101'
+    # length = 5
+    # offset = 12
+    # print(get_lz_link_bytes(offset, length))

@@ -73,7 +73,7 @@ def rle_decompress(file: bytes) -> bytes:
             count = 0
             continue
         if count == 0:
-            count = int.from_bytes(bytes(file[i:i+2]), 'big')
+            count = int.from_bytes(bytes(file[i:i + 2]), 'big')
             continue
         if count > 0:
             # Пропуск 1-й итерации
@@ -86,6 +86,69 @@ def rle_decompress(file: bytes) -> bytes:
             continue
         new_file_bytes += byte
         count = -1
+    return new_file_bytes
+
+
+def pad_binary_str(bin_str: str, req_length: int) -> str:
+    res_str = '0' * (req_length - len(bin_str)) + bin_str
+    return res_str
+
+
+def lz_flag_list_from_byte(byte: bytes) -> list[int]:
+    byte_str = pad_binary_str(bin(int.from_bytes(byte, 'big'))[2:], 8)
+    flag_list = list(map(int, byte_str))
+    return flag_list
+
+
+def lz_count_encoded_length(flag_list: list[int]) -> int:
+    return sum([x + 1 for x in flag_list])
+
+
+def lz_deformat_link(read_bytes: bytes) -> tuple:
+    combination = pad_binary_str(bin(int.from_bytes(read_bytes, 'big'))[2:], 16)
+    # print(combination[:6])
+    # print(combination[6:])
+    length = int(combination[:6], 2) + 3
+    offset = int(combination[6:], 2) + 1
+    return offset, length
+
+
+def lz_decompress(file: bytes) -> bytes:
+    last_len = int.from_bytes(file[:1], 'big')
+    file = file[1:]
+    size = len(file)
+    i = 0
+    reading_coding = False
+    block_count = 0
+    flag_list = []
+    new_file_bytes = bytearray()
+    window = bytearray()
+    while i < size - last_len:
+        byte = bytes([file[i]])
+        if not reading_coding:
+            reading_coding = True
+            flag_list = lz_flag_list_from_byte(byte)
+        else:
+            if block_count < len(flag_list):
+                if flag_list[block_count] == 0:
+                    new_file_bytes += byte
+                    window += byte
+                    block_count += 1
+                elif flag_list[block_count] == 1:
+                    offset, length = lz_deformat_link(byte + bytes([file[i + 1]]))
+                    offset_from_start = len(window) - offset
+                    decoded = window[offset_from_start:offset_from_start + length]
+                    new_file_bytes += decoded
+                    window += decoded
+                    block_count += 1
+                    i += 1
+            else:
+                reading_coding = False
+                block_count = 0
+                continue
+        i += 1
+    if last_len > 0:
+        new_file_bytes += file[-last_len:]
     return new_file_bytes
 
 
